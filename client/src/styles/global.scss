@@ -1,0 +1,89 @@
+// Import Bootstrap
+@import '~bootstrap/scss/bootstrap';
+
+// Variables
+$primary-color: rgb(130, 0, 26); // VNRVJIET maroon
+$background-color: #f5f5f5;
+$text-color: #333;
+$transition-speed: 0.3s;
+
+// Override Bootstrap variables
+$theme-colors: (
+  "primary": $primary-color,
+);
+
+// Global Styles
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: $background-color;
+  color: $text-color;
+  line-height: 1.6;
+}
+
+// App Container
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  &.loading {
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Loading Spinner
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba($primary-color, 0.3);
+  border-radius: 50%;
+  border-top-color: $primary-color;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Home Page
+.home {
+  background: linear-gradient(
+    135deg,
+    rgba($primary-color, 0.1) 0%,
+    rgba($primary-color, 0.05) 100%
+  );
+
+  h1 {
+    color: $primary-color;
+    font-weight: bold;
+  }
+
+  .btn {
+    transition: all $transition-speed ease;
+    
+    &:hover {
+      transform: translateY(-2px);
+    }
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .home {
+    text-align: center;
+    
+    .btn {
+      width: 100%;
+      margin: 0.5rem 0;
+    }
+  }
+} 
