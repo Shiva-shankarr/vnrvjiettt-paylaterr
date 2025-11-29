@@ -1,0 +1,213 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  STUDENT
+  PROVIDER
+  ADMIN
+  EVENT_MANAGER
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  ONLINE
+  OFFLINE
+  CREDIT
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String
+  role            Role      @default(STUDENT)
+  firstName       String
+  lastName        String
+  studentId       String?   @unique
+  department      String?
+  year            Int?
+  phone           String?
+  creditLimit     Decimal   @default(5000) @db.Decimal(10, 2)
+  currentBalance  Decimal   @default(0) @db.Decimal(10, 2)
+  isActive        Boolean   @default(true)
+  isVerified      Boolean   @default(false)
+  verificationToken String?
+  resetToken      String?
+  resetTokenExpiry DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  orders          Order[]
+  payments        Payment[]
+  notifications   Notification[]
+  eventRegistrations EventRegistration[]
+  provider        ServiceProvider?
+  managedEvents   Event[] @relation("EventManager")
+}
+
+model ServiceProvider {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id])
+  businessName    String
+  serviceType     String
+  location        String?
+  description     String?
+  operatingHours  Json?
+  contactPhone    String?
+  upiId           String?
+  isActive        Boolean   @default(true)
+  rating          Decimal   @default(0) @db.Decimal(2, 1)
+  totalOrders     Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  menuItems       MenuItem[]
+  orders          Order[]
+}
+
+model MenuItem {
+  id              String    @id @default(uuid())
+  providerId      String
+  provider        ServiceProvider @relation(fields: [providerId], references: [id])
+  name            String
+  description     String?
+  price           Decimal   @db.Decimal(10, 2)
+  category        String
+  imageUrl        String?
+  isAvailable     Boolean   @default(true)
+  isVeg           Boolean   @default(true)
+  preparationTime Int       @default(15) // in minutes
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  orderItems      OrderItem[]
+}
+
+model Order {
+  id              String    @id @default(uuid())
+  orderNumber     String    @unique
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  providerId      String
+  provider        ServiceProvider @relation(fields: [providerId], references: [id])
+  totalAmount     Decimal   @db.Decimal(10, 2)
+  status          OrderStatus @default(PENDING)
+  paymentStatus   PaymentStatus @default(PENDING)
+  paymentMethod   PaymentMethod @default(CREDIT)
+  deliveryTime    DateTime?
+  specialInstructions String?
+  rating          Int?
+  feedback        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  items           OrderItem[]
+  payment         Payment?
+}
+
+model OrderItem {
+  id              String    @id @default(uuid())
+  orderId         String
+  order           Order     @relation(fields: [orderId], references: [id])
+  itemId          String
+  item            MenuItem  @relation(fields: [itemId], references: [id])
+  quantity        Int
+  unitPrice       Decimal   @db.Decimal(10, 2)
+  totalPrice      Decimal   @db.Decimal(10, 2)
+  notes           String?
+  createdAt       DateTime  @default(now())
+}
+
+model Event {
+  id              String    @id @default(uuid())
+  managerId       String
+  manager         User      @relation("EventManager", fields: [managerId], references: [id])
+  title           String
+  description     String?
+  eventDate       DateTime
+  location        String
+  totalSeats      Int
+  availableSeats  Int
+  price           Decimal   @db.Decimal(10, 2)
+  imageUrl        String?
+  category        String
+  registrationDeadline DateTime
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  registrations   EventRegistration[]
+}
+
+model EventRegistration {
+  id              String    @id @default(uuid())
+  eventId         String
+  event           Event     @relation(fields: [eventId], references: [id])
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  paymentStatus   PaymentStatus @default(PENDING)
+  ticketCode      String    @unique
+  checkedIn       Boolean   @default(false)
+  checkedInAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([eventId, userId])
+}
+
+model Payment {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  orderId         String?   @unique
+  order           Order?    @relation(fields: [orderId], references: [id])
+  amount          Decimal   @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  transactionId   String?   @unique
+  razorpayOrderId String?
+  razorpayPaymentId String?
+  razorpaySignature String?
+  paymentDate     DateTime?
+  description     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+
+model Notification {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id])
+  title           String
+  message         String
+  type            String
+  isRead          Boolean   @default(false)
+  data            Json?
+  createdAt       DateTime  @default(now())
+}
